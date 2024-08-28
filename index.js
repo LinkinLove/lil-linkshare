@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const httpProxy = require('express-http-proxy');
+const expressHttpProxy = require('express-http-proxy');
 const fs = require('fs');
 require('dotenv').config();
 
@@ -109,7 +109,7 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 
 // Proxy middleware
 Object.keys(TARGET_URLS).forEach(suffix => {
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, httpProxy(TARGET_URLS[suffix], {
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, expressHttpProxy(TARGET_URLS[suffix], {
         proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
             proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
             return proxyReqOpts;
@@ -141,7 +141,7 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
     fs.writeFileSync('.env', updatedEnvContent);
 
     // Setup new proxy middleware
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, httpProxy(targetUrl, {
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, expressHttpProxy(targetUrl, {
         proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
             proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
             return proxyReqOpts;
@@ -152,10 +152,13 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
 });
 
 // Logout route
-app.post('/logout', (req, res) => {
+app.post('/logout', (req, res, next) => {
     console.log(`User ${req.user ? req.user.username : 'unknown'} logging out.`);
-    req.logout(() => {
-        res.json({ message: 'Logged out successfully' });
+    req.logout(function(err) {
+        if (err) { return next(err); }
+        req.session.destroy(() => {
+            res.json({ message: 'Logged out successfully' });
+        });
     });
 });
 
