@@ -3,6 +3,7 @@ const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const { createProxyMiddleware } = require('http-proxy-middleware');
+const fs = require('fs');
 require('dotenv').config();
 
 const app = express();
@@ -12,7 +13,7 @@ const port = process.env.PORT || 3000;
 const ALLOWED_USERNAMES = process.env.ALLOWED_USERS ? process.env.ALLOWED_USERS.split(',') : [];
 
 // Set the mapping of URL suffixes to their corresponding target URLs
-const TARGET_URLS = process.env.TARGET_URLS ? JSON.parse(process.env.TARGET_URLS) : {};
+let TARGET_URLS = process.env.TARGET_URLS ? JSON.parse(process.env.TARGET_URLS) : {};
 
 // Ensure the SESSION_SECRET environment variable is set
 if (!process.env.SESSION_SECRET) {
@@ -41,6 +42,7 @@ passport.deserializeUser((obj, done) => {
 app.set('view engine', 'ejs');
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -106,9 +108,9 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 });
 
 // Proxy middleware
-Object.keys(TARGET_URLS).forEach(suffix => {
+function setupProxyMiddleware(suffix, targetUrl) {
     app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
-        target: TARGET_URLS[suffix],
+        target: targetUrl,
         changeOrigin: true,
         pathRewrite: {
             [`^/proxy/${suffix}`]: ''
@@ -117,6 +119,39 @@ Object.keys(TARGET_URLS).forEach(suffix => {
             proxyRes.headers['X-Frame-Options'] = 'SAMEORIGIN';
         }
     }));
+}
+
+Object.keys(TARGET_URLS).forEach(suffix => {
+    setupProxyMiddleware(suffix, TARGET_URLS[suffix]);
+});
+
+// Add new link route
+app.post('/add-link', ensureAuthenticated, (req, res) => {
+    const { suffix, targetUrl } = req.body;
+    
+    if (!suffix || !targetUrl) {
+        return res.status(400).json({ message: 'Suffix and target URL are required' });
+    }
+
+    if (TARGET_URLS[suffix]) {
+        return res.status(400).json({ message: 'Suffix already exists' });
+    }
+
+    // Add new link
+    TARGET_URLS[suffix] = targetUrl;
+
+    // Update .env file
+    const envContent = fs.readFileSync('.env', 'utf8');
+    const updatedEnvContent = envContent.replace(
+        /TARGET_URLS=.*/,
+        `TARGET_URLS=${JSON.stringify(TARGET_URLS)}`
+    );
+    fs.writeFileSync('.env', updatedEnvContent);
+
+    // Setup new proxy middleware
+    setupProxyMiddleware(suffix, targetUrl);
+
+    res.json({ message: 'Link added successfully', suffixes: Object.keys(TARGET_URLS) });
 });
 
 // Logout route
