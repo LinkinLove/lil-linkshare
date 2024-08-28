@@ -31,11 +31,18 @@
         .suffix-btn:hover {
             background-color: #99aab5;
         }
+        .welcome-message {
+            margin-bottom: 20px;
+            font-size: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Available Services</h1>
+        <h1>Welcome, <%= username %>!</h1>
+        <p class="welcome-message">You have successfully logged in.</p>
+
+        <h2>Available Services</h2>
         <% suffixes.forEach(suffix => { %>
             <a class="suffix-btn" href="/redirect/<%= suffix %>"><%= suffix %></a>
         <% }) %>
