@@ -73,20 +73,23 @@ app.get('/callback',
     }
 );
 
+// Middleware for authentication check
+const ensureAuthenticated = (req, res, next) => {
+    if (req.isAuthenticated() && ALLOWED_USERNAMES.includes(req.user.username)) {
+        return next();
+    } else {
+        res.status(403).send('Forbidden');
+    }
+};
+
 // Apply proxy middleware for each target URL
 Object.keys(TARGET_URLS).forEach(suffix => {
     const target = TARGET_URLS[suffix];
-    app.use(`/proxy/${suffix}`, (req, res, next) => {
-        if (req.isAuthenticated() && ALLOWED_USERNAMES.includes(req.user.username)) {
-            createProxyMiddleware({
-                target,
-                changeOrigin: true,
-                pathRewrite: { [`^/proxy/${suffix}`]: '' }
-            })(req, res, next);
-        } else {
-            res.status(403).send('Forbidden');
-        }
-    });
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
+        target,
+        changeOrigin: true,
+        pathRewrite: { [`^/proxy/${suffix}`]: '' }
+    }));
 });
 
 app.get('/logout', (req, res) => {
