@@ -79,9 +79,17 @@ app.get('/serve/:suffix', async (req, res) => {
         const targetUrl = TARGET_URLS[suffix];
         if (targetUrl) {
             try {
-                const response = await axios.get(targetUrl);
-                res.send(response.data);
+                // 设置请求头，防止被目标服务器阻挡
+                const response = await axios.get(targetUrl, {
+                    headers: {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                    },
+                    responseType: 'stream'
+                });
+                response.data.pipe(res); // 流式传递响应到客户端
             } catch (error) {
+                console.error('Error fetching the target URL:', error.message);
+                console.error('Error details:', error.response ? error.response.data : 'No response data');
                 res.status(500).send('Error fetching the target URL.');
             }
         } else {
