@@ -74,36 +74,28 @@
             z-index: 10;
         }
 
-        .floating-menu {
+        #home-button {
             position: fixed;
-            top: 1rem;
-            right: 1rem;
-            background-color: #fff;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-            padding: 0.5rem;
-            z-index: 1000;
+            bottom: 2rem;
+            right: 2rem;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background-color: #4a90e2;
+            color: white;
             display: none;
-            cursor: move;
-        }
-
-        .drag-handle {
-            padding: 5px;
-            text-align: center;
-            cursor: move;
-            user-select: none;
-            border-bottom: 1px solid #e0e0e0;
-            margin-bottom: 5px;
-        }
-
-        #suffix-select {
-            width: 100%;
-            padding: 0.5rem;
-            border: 1px solid #e0e0e0;
-            border-radius: 5px;
-            font-size: 0.9rem;
-            background-color: #fff;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
             cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        #home-button:hover {
+            background-color: #357ae8;
+            transform: scale(1.1);
         }
 
         @media (max-width: 768px) {
@@ -115,6 +107,12 @@
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
+
+            #home-button {
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
         }
 
         @keyframes fadeIn {
@@ -122,7 +120,7 @@
             to { opacity: 1; }
         }
 
-        .container, #content-frame, .floating-menu {
+        .container, #content-frame, #home-button {
             animation: fadeIn 0.6s ease-out;
         }
     </style>
@@ -137,21 +135,12 @@
         </div>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-    <div class="floating-menu" id="floating-menu">
-        <div class="drag-handle">⋮</div>
-        <select id="suffix-select">
-            <option value="">Select a suffix</option>
-            <% suffixes.forEach(function(suffix) { %>
-                <option value="<%= suffix %>"><%= suffix %></option>
-            <% }); %>
-        </select>
-    </div>
+    <div id="home-button">🏠</div>
 
     <script>
         const mainContainer = document.getElementById('main-container');
         const contentFrame = document.getElementById('content-frame');
-        const floatingMenu = document.getElementById('floating-menu');
-        const suffixSelect = document.getElementById('suffix-select');
+        const homeButton = document.getElementById('home-button');
         const suffixButtons = document.querySelectorAll('.suffix-button');
 
         function updateFrame(suffix) {
@@ -163,8 +152,7 @@
                 history.pushState(null, '', '/' + suffix);
                 mainContainer.style.display = 'none';
                 contentFrame.style.display = 'block';
-                floatingMenu.style.display = 'block';
-                suffixSelect.value = suffix;
+                homeButton.style.display = 'flex';
 
                 contentFrame.onload = function() {
                     console.log('iframe loaded successfully');
@@ -175,6 +163,14 @@
             }
         }
 
+        function returnHome() {
+            mainContainer.style.display = 'flex';
+            contentFrame.style.display = 'none';
+            homeButton.style.display = 'none';
+            history.pushState(null, '', '/');
+            contentFrame.src = '';
+        }
+
         suffixButtons.forEach(button => {
             button.addEventListener('click', function() {
                 console.log('Button clicked:', this.dataset.suffix);
@@ -182,10 +178,7 @@
             });
         });
 
-        suffixSelect.addEventListener('change', function() {
-            console.log('Select changed:', this.value);
-            updateFrame(this.value);
-        });
+        homeButton.addEventListener('click', returnHome);
 
         const initialSuffix = '<%= selectedSuffix || "" %>';
         if (initialSuffix) {
@@ -207,39 +200,14 @@
         setInterval(syncCookies, 60000);
         syncCookies();
 
-        // Draggable floating menu
-        let isDragging = false;
-        let startX, startY, startLeft, startTop;
-
-        floatingMenu.addEventListener('mousedown', startDragging);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', stopDragging);
-
-        function startDragging(e) {
-            if (e.target === suffixSelect) return; // Prevent dragging when clicking on select
-            isDragging = true;
-            startX = e.clientX;
-            startY = e.clientY;
-            startLeft = parseInt(window.getComputedStyle(floatingMenu).left);
-            startTop = parseInt(window.getComputedStyle(floatingMenu).top);
-            e.preventDefault();
-        }
-
-        function drag(e) {
-            if (!isDragging) return;
-            const deltaX = e.clientX - startX;
-            const deltaY = e.clientY - startY;
-            floatingMenu.style.left = `${startLeft + deltaX}px`;
-            floatingMenu.style.top = `${startTop + deltaY}px`;
-        }
-
-        function stopDragging() {
-            isDragging = false;
-        }
-
-        // Prevent text selection during drag
-        floatingMenu.addEventListener('selectstart', (e) => {
-            if (isDragging) e.preventDefault();
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function(event) {
+            if (document.location.pathname === '/') {
+                returnHome();
+            } else {
+                const suffix = document.location.pathname.slice(1);
+                updateFrame(suffix);
+            }
         });
     </script>
 </body>
