@@ -42,14 +42,28 @@ passport.deserializeUser((obj, done) => {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+// Modified session middleware
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: true,
+        sameSite: 'lax'
+    }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+// CORS headers
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+    res.header('Access-Control-Allow-Headers', 'Content-Type');
+    next();
+});
 
 // Middleware for root route
 app.get('/', (req, res) => {
@@ -91,12 +105,27 @@ Object.keys(TARGET_URLS).forEach(suffix => {
         target,
         changeOrigin: true,
         pathRewrite: {
-            [`^/proxy/${suffix}`]: ''  // This should remove the prefix from the request URL
+            [`^/proxy/${suffix}`]: ''
+        },
+        cookieDomainRewrite: {
+            '*': ''
         },
         onProxyReq: (proxyReq, req, res) => {
+            if (req.session.passport && req.session.passport.user) {
+                proxyReq.setHeader('X-Authenticated-User', req.session.passport.user.id);
+            }
             console.log(`Proxying request ${req.originalUrl} to ${target}`);
         },
         onProxyRes: (proxyRes, req, res) => {
+            const cookies = proxyRes.headers['set-cookie'];
+            if (cookies) {
+                const newCookies = cookies.map(cookie =>
+                    cookie.replace(/Domain=[^;]+;/, '')
+                          .replace(/Secure;?/, '')
+                          .replace(/SameSite=[^;]+;?/, 'SameSite=Lax;')
+                );
+                proxyRes.headers['set-cookie'] = newCookies;
+            }
             console.log(`Proxy response received for ${req.originalUrl}`);
         },
         onError: (err, req, res) => {
@@ -109,6 +138,24 @@ Object.keys(TARGET_URLS).forEach(suffix => {
 app.get('/logout', (req, res) => {
     req.logout();
     res.redirect('/');
+});
+
+// New route for handling suffix requests
+app.get('/:suffix', ensureAuthenticated, (req, res) => {
+    const suffix = req.params.suffix;
+    if (TARGET_URLS.hasOwnProperty(suffix)) {
+        res.render('home', { suffixes: Object.keys(TARGET_URLS), username: req.user.username });
+    } else {
+        res.status(404).send('Not found');
+    }
+});
+
+// Cookie sync endpoint
+app.get('/sync-cookies', (req, res) => {
+    const cookies = req.headers.cookie;
+    // Here you would implement your cookie syncing logic
+    console.log('Syncing cookies:', cookies);
+    res.sendStatus(200);
 });
 
 app.listen(port, () => {
