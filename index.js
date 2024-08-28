@@ -42,7 +42,13 @@ passport.deserializeUser((obj, done) => {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Modified session middleware
+// Logging middleware
+app.use((req, res, next) => {
+    console.log(`Received request: ${req.method} ${req.url}`);
+    next();
+});
+
+// Session middleware
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
@@ -65,7 +71,10 @@ app.use((req, res, next) => {
     next();
 });
 
-// Middleware for root route
+// Serve static files
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Root route
 app.get('/', (req, res) => {
     if (req.isAuthenticated()) {
         if (ALLOWED_USERNAMES.includes(req.user.username)) {
@@ -87,7 +96,7 @@ app.get('/callback',
     }
 );
 
-// Middleware for authentication check
+// Authentication middleware
 const ensureAuthenticated = (req, res, next) => {
     if (req.isAuthenticated() && ALLOWED_USERNAMES.includes(req.user.username)) {
         console.log(`User ${req.user.username} authenticated and authorized.`);
@@ -98,7 +107,7 @@ const ensureAuthenticated = (req, res, next) => {
     }
 };
 
-// Apply proxy middleware for each target URL
+// Proxy middleware
 Object.keys(TARGET_URLS).forEach(suffix => {
     const target = TARGET_URLS[suffix];
     app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
@@ -114,6 +123,8 @@ Object.keys(TARGET_URLS).forEach(suffix => {
             if (req.session.passport && req.session.passport.user) {
                 proxyReq.setHeader('X-Authenticated-User', req.session.passport.user.id);
             }
+            // Add default environment parameter
+            proxyReq.setHeader('X-Environment', 'production');
             console.log(`Proxying request ${req.originalUrl} to ${target}`);
         },
         onProxyRes: (proxyRes, req, res) => {
@@ -140,7 +151,7 @@ app.get('/logout', (req, res) => {
     res.redirect('/');
 });
 
-// New route for handling suffix requests
+// Suffix route
 app.get('/:suffix', ensureAuthenticated, (req, res) => {
     const suffix = req.params.suffix;
     if (TARGET_URLS.hasOwnProperty(suffix)) {
@@ -152,9 +163,7 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 
 // Cookie sync endpoint
 app.get('/sync-cookies', (req, res) => {
-    const cookies = req.headers.cookie;
-    // Here you would implement your cookie syncing logic
-    console.log('Syncing cookies:', cookies);
+    console.log('Received cookies:', req.headers.cookie);
     res.sendStatus(200);
 });
 
