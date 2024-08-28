@@ -2,9 +2,8 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const axios = require('axios');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config(); // 加载 .env 文件的配置
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -21,6 +20,7 @@ if (!process.env.SESSION_SECRET) {
     process.exit(1);
 }
 
+// Configure Discord OAuth2
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
@@ -50,6 +50,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
+// Root route for displaying the suffix buttons
 app.get('/', (req, res) => {
     if (req.isAuthenticated()) {
         if (ALLOWED_USERNAMES.includes(req.user.username)) {
@@ -66,47 +67,18 @@ app.get('/auth/discord', (req, res, next) => {
     passport.authenticate('discord')(req, res, next);
 });
 
-app.get('/callback',
+app.get('/callback', 
     passport.authenticate('discord', { failureRedirect: '/' }),
     (req, res) => {
         res.redirect('/');
     }
 );
 
-app.get('/serve/:suffix', async (req, res) => {
+app.get('/redirect/:suffix', (req, res) => {
     if (req.isAuthenticated()) {
-        const suffix = req.params.suffix;
-        let targetUrl = TARGET_URLS[suffix];
-        let maxRedirects = 10;  // 设置最大重定向次数
-
+        const targetUrl = TARGET_URLS[req.params.suffix];
         if (targetUrl) {
-            try {
-                while (maxRedirects > 0) {
-                    const response = await axios.get(targetUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-                        },
-                        maxRedirects: 0,  // 自行处理重定向
-                        validateStatus: function (status) {
-                            return status >= 200 && status < 400; // 接受所有 2xx 和 3xx 响应
-                        }
-                    });
-
-                    if (response.status >= 300 && response.status < 400 && response.headers.location) {
-                        targetUrl = response.headers.location;
-                        maxRedirects--;
-                    } else {
-                        response.data.pipe(res); // 流式传递响应到客户端
-                        return;
-                    }
-                }
-                throw new Error('Maximum number of redirects exceeded');
-
-            } catch (error) {
-                console.error('Error fetching the target URL:', error.message);
-                console.error('Error details:', error.response ? error.response.data : 'No response data');
-                res.status(500).send('Error fetching the target URL.');
-            }
+            res.redirect(targetUrl);
         } else {
             res.send('Invalid URL suffix.');
         }
