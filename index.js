@@ -155,7 +155,7 @@ app.get('/logout', (req, res) => {
 app.get('/:suffix', ensureAuthenticated, (req, res) => {
     const suffix = req.params.suffix;
     if (TARGET_URLS.hasOwnProperty(suffix)) {
-        res.render('home', { suffixes: Object.keys(TARGET_URLS), username: req.user.username });
+        res.render('home', { suffixes: Object.keys(TARGET_URLS), username: req.user.username, selectedSuffix: suffix });
     } else {
         res.status(404).send('Not found');
     }
