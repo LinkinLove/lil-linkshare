@@ -28,7 +28,7 @@ passport.use(new DiscordStrategy({
     callbackURL: process.env.CALLBACK_URL,
     scope: ['identify']
 }, (accessToken, refreshToken, profile, done) => {
-    done(null, profile);
+    return done(null, profile);
 }));
 
 passport.serializeUser((user, done) => {
@@ -51,7 +51,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Root route for displaying the suffix buttons
+// Middleware for root route
 app.get('/', (req, res) => {
     if (req.isAuthenticated()) {
         if (ALLOWED_USERNAMES.includes(req.user.username)) {
@@ -66,7 +66,7 @@ app.get('/', (req, res) => {
 
 app.get('/auth/discord', passport.authenticate('discord'));
 
-app.get('/callback', 
+app.get('/callback',
     passport.authenticate('discord', { failureRedirect: '/' }),
     (req, res) => {
         res.redirect('/');
@@ -76,8 +76,10 @@ app.get('/callback',
 // Middleware for authentication check
 const ensureAuthenticated = (req, res, next) => {
     if (req.isAuthenticated() && ALLOWED_USERNAMES.includes(req.user.username)) {
+        console.log(`User ${req.user.username} authenticated and authorized.`);
         return next();
     } else {
+        console.log(`User ${req.user ? req.user.username : 'unknown'} not authorized.`);
         res.status(403).send('Forbidden');
     }
 };
@@ -88,7 +90,16 @@ Object.keys(TARGET_URLS).forEach(suffix => {
     app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
         target,
         changeOrigin: true,
-        pathRewrite: { [`^/proxy/${suffix}`]: '' }
+        pathRewrite: {
+            [`^/proxy/${suffix}`]: ''  // This should remove the prefix from the request URL
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            console.log(`Proxying request ${req.originalUrl} to ${target}`);
+        },
+        onError: (err, req, res) => {
+            console.error(`Error during proxying request ${req.originalUrl}:`, err);
+            res.status(500).send('Proxy error');
+        }
     }));
 });
 
