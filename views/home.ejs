@@ -12,138 +12,148 @@
             box-sizing: border-box;
         }
 
-        body {
+        body, html {
+            height: 100%;
             font-family: 'Poppins', sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
         }
 
         .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
             padding: 2rem;
-            width: 100%;
-            max-width: 1200px;
-            margin-bottom: 2rem;
-            transition: all 0.3s ease;
         }
 
         h1 {
             color: #333;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
             font-weight: 600;
             font-size: 2.5rem;
             text-align: center;
         }
 
-        #suffix-select {
-            width: 100%;
-            padding: 0.8rem;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            margin-bottom: 1.5rem;
-            appearance: none;
-            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 1rem center/1em auto;
+        .suffix-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            max-width: 800px;
         }
 
-        #suffix-select:focus {
-            outline: none;
-            border-color: #4a90e2;
-            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        .suffix-button {
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #4a90e2;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .suffix-button:hover {
+            background-color: #357ae8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 8px rgba(0,0,0,0.15);
         }
 
         #content-frame {
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
-            height: 70vh;
+            height: 100%;
             border: none;
-            border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
+            display: none;
         }
 
-        #content-frame:hover {
-            box-shadow: 0 6px 30px rgba(0,0,0,0.12);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .container, #content-frame {
-            animation: fadeIn 0.6s ease-out;
-        }
-
-        .floating-select {
-            position: absolute;
+        .floating-menu {
+            position: fixed;
             top: 1rem;
             right: 1rem;
-            width: auto;
-            padding: 0.5rem;
             background-color: #fff;
-            border: 2px solid #e0e0e0;
             border-radius: 10px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
-            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            padding: 0.5rem;
+            z-index: 1000;
+            display: none;
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateX(100px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        #suffix-select.floating {
-            animation: slideIn 0.6s ease-out;
+        #suffix-select {
+            padding: 0.5rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+            font-size: 0.9rem;
+            background-color: #fff;
         }
 
         @media (max-width: 768px) {
-            body {
-                padding: 1rem;
-            }
-            
-            .container {
-                padding: 1.5rem;
-            }
-
             h1 {
                 font-size: 2rem;
             }
+
+            .suffix-button {
+                padding: 0.6rem 1.2rem;
+                font-size: 0.9rem;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .container, #content-frame, .floating-menu {
+            animation: fadeIn 0.6s ease-out;
         }
     </style>
 </head>
 <body>
     <div class="container" id="main-container">
         <h1>Welcome, <%= username %></h1>
+        <div class="suffix-buttons">
+            <% suffixes.forEach(function(suffix) { %>
+                <button class="suffix-button" data-suffix="<%= suffix %>"><%= suffix %></button>
+            <% }); %>
+        </div>
+    </div>
+    <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
+    <div class="floating-menu">
         <select id="suffix-select">
             <option value="">Select a suffix</option>
             <% suffixes.forEach(function(suffix) { %>
-                <option value="<%= suffix %>" <%= selectedSuffix === suffix ? 'selected' : '' %>><%= suffix %></option>
+                <option value="<%= suffix %>"><%= suffix %></option>
             <% }); %>
         </select>
     </div>
-    <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 
     <script>
-        const suffixSelect = document.getElementById('suffix-select');
-        const contentFrame = document.getElementById('content-frame');
         const mainContainer = document.getElementById('main-container');
-        
+        const contentFrame = document.getElementById('content-frame');
+        const floatingMenu = document.querySelector('.floating-menu');
+        const suffixSelect = document.getElementById('suffix-select');
+        const suffixButtons = document.querySelectorAll('.suffix-button');
+
         function updateFrame(suffix) {
             if (suffix) {
                 contentFrame.src = '/proxy/' + suffix;
                 history.pushState(null, '', '/' + suffix);
                 mainContainer.style.display = 'none';
-                suffixSelect.classList.add('floating');
-                suffixSelect.classList.add('floating-select');
+                contentFrame.style.display = 'block';
+                floatingMenu.style.display = 'block';
+                suffixSelect.value = suffix;
             }
         }
+
+        suffixButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                updateFrame(this.dataset.suffix);
+            });
+        });
 
         suffixSelect.addEventListener('change', function() {
             updateFrame(this.value);
