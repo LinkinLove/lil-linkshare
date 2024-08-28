@@ -41,7 +41,6 @@
             justify-content: center;
             gap: 1rem;
             max-width: 800px;
-            margin-bottom: 2rem;
         }
 
         .suffix-button {
@@ -119,28 +118,12 @@
             background-color: #c0392b;
         }
 
-        #logout-main {
-            margin-top: 2rem;
-            padding: 0.8rem 1.5rem;
-            font-size: 1rem;
-            color: #fff;
-            background-color: #e74c3c;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-
-        #logout-main:hover {
-            background-color: #c0392b;
-        }
-
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
             }
 
-            .suffix-button, #logout-main {
+            .suffix-button {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
@@ -170,7 +153,6 @@
                 <button class="suffix-button" data-suffix="<%= suffix %>"><%= suffix %></button>
             <% }); %>
         </div>
-        <button id="logout-main">Logout</button>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
     <div class="floating-buttons">
@@ -183,7 +165,6 @@
         const contentFrame = document.getElementById('content-frame');
         const homeButton = document.getElementById('home-button');
         const logoutButton = document.getElementById('logout-button');
-        const logoutMainButton = document.getElementById('logout-main');
         const suffixButtons = document.querySelectorAll('.suffix-button');
         const floatingButtons = document.querySelector('.floating-buttons');
 
@@ -216,8 +197,15 @@
         }
 
         function logout() {
-            // Perform logout action (e.g., clear session, redirect to login page)
-            window.location.href = '/logout';
+            // Perform logout action and redirect to login page
+            fetch('/logout', { method: 'POST', credentials: 'same-origin' })
+                .then(() => {
+                    window.location.href = '/login';
+                })
+                .catch(error => {
+                    console.error('Logout failed:', error);
+                    alert('Logout failed. Please try again.');
+                });
         }
 
         suffixButtons.forEach(button => {
@@ -229,7 +217,6 @@
 
         homeButton.addEventListener('click', returnHome);
         logoutButton.addEventListener('click', logout);
-        logoutMainButton.addEventListener('click', logout);
 
         const initialSuffix = '<%= selectedSuffix || "" %>';
         if (initialSuffix) {
