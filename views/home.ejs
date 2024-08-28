@@ -84,14 +84,26 @@
             padding: 0.5rem;
             z-index: 1000;
             display: none;
+            cursor: move;
+        }
+
+        .drag-handle {
+            padding: 5px;
+            text-align: center;
+            cursor: move;
+            user-select: none;
+            border-bottom: 1px solid #e0e0e0;
+            margin-bottom: 5px;
         }
 
         #suffix-select {
+            width: 100%;
             padding: 0.5rem;
             border: 1px solid #e0e0e0;
             border-radius: 5px;
             font-size: 0.9rem;
             background-color: #fff;
+            cursor: pointer;
         }
 
         @media (max-width: 768px) {
@@ -125,7 +137,8 @@
         </div>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-    <div class="floating-menu">
+    <div class="floating-menu" id="floating-menu">
+        <div class="drag-handle">⋮</div>
         <select id="suffix-select">
             <option value="">Select a suffix</option>
             <% suffixes.forEach(function(suffix) { %>
@@ -137,7 +150,7 @@
     <script>
         const mainContainer = document.getElementById('main-container');
         const contentFrame = document.getElementById('content-frame');
-        const floatingMenu = document.querySelector('.floating-menu');
+        const floatingMenu = document.getElementById('floating-menu');
         const suffixSelect = document.getElementById('suffix-select');
         const suffixButtons = document.querySelectorAll('.suffix-button');
 
@@ -193,11 +206,41 @@
 
         setInterval(syncCookies, 60000);
         syncCookies();
+
+        // Draggable floating menu
+        let isDragging = false;
+        let startX, startY, startLeft, startTop;
+
+        floatingMenu.addEventListener('mousedown', startDragging);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDragging);
+
+        function startDragging(e) {
+            if (e.target === suffixSelect) return; // Prevent dragging when clicking on select
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startLeft = parseInt(window.getComputedStyle(floatingMenu).left);
+            startTop = parseInt(window.getComputedStyle(floatingMenu).top);
+            e.preventDefault();
+        }
+
+        function drag(e) {
+            if (!isDragging) return;
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            floatingMenu.style.left = `${startLeft + deltaX}px`;
+            floatingMenu.style.top = `${startTop + deltaY}px`;
+        }
+
+        function stopDragging() {
+            isDragging = false;
+        }
+
+        // Prevent text selection during drag
+        floatingMenu.addEventListener('selectstart', (e) => {
+            if (isDragging) e.preventDefault();
+        });
     </script>
 </body>
 </html>
-
-
-
-
-
