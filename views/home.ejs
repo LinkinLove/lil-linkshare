@@ -1,23 +1,110 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Proxy Home</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elegant Proxy Home</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+            padding: 2rem;
+            width: 100%;
+            max-width: 1200px;
+            margin-bottom: 2rem;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 1.5rem;
+            font-weight: 600;
+            font-size: 2.5rem;
+            text-align: center;
+        }
+
+        #suffix-select {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            margin-bottom: 1.5rem;
+            appearance: none;
+            background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 1rem center/1em auto;
+        }
+
+        #suffix-select:focus {
+            outline: none;
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+        }
+
         #content-frame {
             width: 100%;
-            height: 100vh;
+            height: 70vh;
             border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        #content-frame:hover {
+            box-shadow: 0 6px 30px rgba(0,0,0,0.12);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .container, #content-frame {
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                padding: 1rem;
+            }
+            
+            .container {
+                padding: 1.5rem;
+            }
+
+            h1 {
+                font-size: 2rem;
+            }
         }
     </style>
 </head>
 <body>
-    <h1>Welcome, <%= username %></h1>
-    <select id="suffix-select">
-        <option value="">Select a suffix</option>
-        <% suffixes.forEach(function(suffix) { %>
-            <option value="<%= suffix %>"><%= suffix %></option>
-        <% }); %>
-    </select>
+    <div class="container">
+        <h1>Welcome, <%= username %></h1>
+        <select id="suffix-select">
+            <option value="">Select a suffix</option>
+            <% suffixes.forEach(function(suffix) { %>
+                <option value="<%= suffix %>"><%= suffix %></option>
+            <% }); %>
+        </select>
+    </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 
     <script>
@@ -29,12 +116,11 @@
             }
         });
 
-        // Cookie sync function
         function syncCookies() {
             fetch('/sync-cookies', { credentials: 'include' })
                 .then(response => {
                     if (!response.ok) {
-                        throw new Error('Cookie sync failed');
+                        throw new Error(`Cookie sync failed: ${response.status}`);
                     }
                     console.log('Cookies synced successfully');
                 })
