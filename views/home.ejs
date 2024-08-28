@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Services</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #7289da;
+            color: #fff;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            text-align: center;
+        }
+        .suffix-btn {
+            display: block;
+            margin: 10px 0;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #7289da;
+            color: #fff;
+            text-decoration: none;
+            border-radius: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .suffix-btn:hover {
+            background-color: #99aab5;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Available Services</h1>
+        <% suffixes.forEach(suffix => { %>
+            <a class="suffix-btn" href="/redirect/<%= suffix %>"><%= suffix %></a>
+        <% }) %>
+        <a class="suffix-btn" href="/logout">Logout</a>
+    </div>
+</body>
+</html>
