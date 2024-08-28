@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elegant Proxy Home</title>
+    <title>LiL Links</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
     <style>
         * {
@@ -69,6 +69,7 @@
             height: 100%;
             border: none;
             display: none;
+            z-index: 10;
         }
 
         .floating-menu {
@@ -138,36 +139,42 @@
         const suffixSelect = document.getElementById('suffix-select');
         const suffixButtons = document.querySelectorAll('.suffix-button');
 
-       // Initialize with selected suffix
-       const initialSuffix = '<%= selectedSuffix || "" %>';
-       if (initialSuffix) {
-           updateFrame(initialSuffix);
-       }
-
         function updateFrame(suffix) {
+            console.log('Updating frame with suffix:', suffix);
             if (suffix) {
-                contentFrame.src = '/proxy/' + suffix;
+                const proxyUrl = '/proxy/' + suffix;
+                console.log('Setting iframe src to:', proxyUrl);
+                contentFrame.src = proxyUrl;
                 history.pushState(null, '', '/' + suffix);
                 mainContainer.style.display = 'none';
                 contentFrame.style.display = 'block';
                 floatingMenu.style.display = 'block';
                 suffixSelect.value = suffix;
+
+                contentFrame.onload = function() {
+                    console.log('iframe loaded successfully');
+                };
+                contentFrame.onerror = function() {
+                    console.error('Error loading iframe');
+                };
             }
         }
 
         suffixButtons.forEach(button => {
             button.addEventListener('click', function() {
+                console.log('Button clicked:', this.dataset.suffix);
                 updateFrame(this.dataset.suffix);
             });
         });
 
         suffixSelect.addEventListener('change', function() {
+            console.log('Select changed:', this.value);
             updateFrame(this.value);
         });
 
-        // Initialize with selected suffix
-        const initialSuffix = '<%= selectedSuffix %>';
+        const initialSuffix = '<%= selectedSuffix || "" %>';
         if (initialSuffix) {
+            console.log('Initializing with suffix:', initialSuffix);
             updateFrame(initialSuffix);
         }
 
@@ -182,10 +189,7 @@
                 .catch(error => console.error('Error syncing cookies:', error));
         }
 
-        // Sync cookies every minute
         setInterval(syncCookies, 60000);
-
-        // Initial cookie sync
         syncCookies();
     </script>
 </body>
