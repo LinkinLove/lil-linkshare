@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const httpProxy = require('express-http-proxy');
 const fs = require('fs');
 require('dotenv').config();
 
@@ -108,21 +108,13 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 });
 
 // Proxy middleware
-function setupProxyMiddleware(suffix, targetUrl) {
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
-        target: targetUrl,
-        changeOrigin: true,
-        pathRewrite: {
-            [`^/proxy/${suffix}`]: ''
-        },
-        onProxyRes: (proxyRes, req, res) => {
-            proxyRes.headers['X-Frame-Options'] = 'SAMEORIGIN';
+Object.keys(TARGET_URLS).forEach(suffix => {
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, httpProxy(TARGET_URLS[suffix], {
+        proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
+            proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
+            return proxyReqOpts;
         }
     }));
-}
-
-Object.keys(TARGET_URLS).forEach(suffix => {
-    setupProxyMiddleware(suffix, TARGET_URLS[suffix]);
 });
 
 // Add new link route
@@ -149,7 +141,12 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
     fs.writeFileSync('.env', updatedEnvContent);
 
     // Setup new proxy middleware
-    setupProxyMiddleware(suffix, targetUrl);
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, httpProxy(targetUrl, {
+        proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
+            proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
+            return proxyReqOpts;
+        }
+    }));
 
     res.json({ message: 'Link added successfully', suffixes: Object.keys(TARGET_URLS) });
 });
