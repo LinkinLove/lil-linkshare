@@ -76,17 +76,32 @@ app.get('/callback',
 app.get('/serve/:suffix', async (req, res) => {
     if (req.isAuthenticated()) {
         const suffix = req.params.suffix;
-        const targetUrl = TARGET_URLS[suffix];
+        let targetUrl = TARGET_URLS[suffix];
+        let maxRedirects = 10;  // 设置最大重定向次数
+
         if (targetUrl) {
             try {
-                // 设置请求头，防止被目标服务器阻挡
-                const response = await axios.get(targetUrl, {
-                    headers: {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
-                    },
-                    responseType: 'stream'
-                });
-                response.data.pipe(res); // 流式传递响应到客户端
+                while (maxRedirects > 0) {
+                    const response = await axios.get(targetUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
+                        },
+                        maxRedirects: 0,  // 自行处理重定向
+                        validateStatus: function (status) {
+                            return status >= 200 && status < 400; // 接受所有 2xx 和 3xx 响应
+                        }
+                    });
+
+                    if (response.status >= 300 && response.status < 400 && response.headers.location) {
+                        targetUrl = response.headers.location;
+                        maxRedirects--;
+                    } else {
+                        response.data.pipe(res); // 流式传递响应到客户端
+                        return;
+                    }
+                }
+                throw new Error('Maximum number of redirects exceeded');
+
             } catch (error) {
                 console.error('Error fetching the target URL:', error.message);
                 console.error('Error details:', error.response ? error.response.data : 'No response data');
