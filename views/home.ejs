@@ -41,6 +41,7 @@
             justify-content: center;
             gap: 1rem;
             max-width: 800px;
+            margin-bottom: 2rem;
         }
 
         .suffix-button {
@@ -118,6 +119,43 @@
             background-color: #c0392b;
         }
 
+        .add-link-form {
+            margin-top: 2rem;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .add-link-form h2 {
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .add-link-form input {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 5px;
+        }
+
+        .add-link-form button {
+            background-color: #4a90e2;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .add-link-form button:hover {
+            background-color: #357ae8;
+        }
+
         @media (max-width: 768px) {
             h1 {
                 font-size: 2rem;
@@ -153,6 +191,12 @@
                 <button class="suffix-button" data-suffix="<%= suffix %>"><%= suffix %></button>
             <% }); %>
         </div>
+        <div class="add-link-form">
+            <h2>Add New Link</h2>
+            <input type="text" id="new-suffix" placeholder="Enter suffix">
+            <input type="url" id="new-target-url" placeholder="Enter target URL">
+            <button id="add-link-button">Add Link</button>
+        </div>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
     <div class="floating-buttons">
@@ -167,6 +211,9 @@
         const logoutButton = document.getElementById('logout-button');
         const suffixButtons = document.querySelectorAll('.suffix-button');
         const floatingButtons = document.querySelector('.floating-buttons');
+        const addLinkButton = document.getElementById('add-link-button');
+        const newSuffixInput = document.getElementById('new-suffix');
+        const newTargetUrlInput = document.getElementById('new-target-url');
 
         function updateFrame(suffix) {
             console.log('Updating frame with suffix:', suffix);
@@ -197,10 +244,11 @@
         }
 
         function logout() {
-            // Perform logout action and redirect to login page
             fetch('/logout', { method: 'POST', credentials: 'same-origin' })
-                .then(() => {
-                    window.location.href = '/login';
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data.message);
+                    window.location.href = '/';
                 })
                 .catch(error => {
                     console.error('Logout failed:', error);
@@ -217,6 +265,38 @@
 
         homeButton.addEventListener('click', returnHome);
         logoutButton.addEventListener('click', logout);
+
+        addLinkButton.addEventListener('click', function() {
+            const suffix = newSuffixInput.value.trim();
+            const targetUrl = newTargetUrlInput.value.trim();
+
+            if (!suffix || !targetUrl) {
+                alert('Please enter both suffix and target URL');
+                return;
+            }
+
+            fetch('/add-link', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ suffix, targetUrl }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Link added successfully') {
+                    alert('New link added successfully');
+                    // 刷新页面以显示新添加的链接
+                    window.location.reload();
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to add new link');
+            });
+        });
 
         const initialSuffix = '<%= selectedSuffix || "" %>';
         if (initialSuffix) {
