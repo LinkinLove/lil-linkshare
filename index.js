@@ -157,11 +157,7 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
 // Logout route
 app.post('/logout', (req, res) => {
     console.log(`User ${req.user ? req.user.username : 'unknown'} logging out.`);
-    req.logout((err) => {
-        if (err) {
-            console.error('Error during logout:', err);
-            return res.status(500).json({ message: 'Error logging out' });
-        }
+    req.logout(() => {
         res.json({ message: 'Logged out successfully' });
     });
 });
