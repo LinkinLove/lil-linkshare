@@ -40,10 +40,15 @@ passport.deserializeUser((obj, done) => {
 
 app.set('view engine', 'ejs');
 
+app.use(express.json());
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
-    saveUninitialized: false
+    saveUninitialized: false,
+    cookie: {
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+    }
 }));
 
 app.use(passport.initialize());
@@ -114,9 +119,16 @@ Object.keys(TARGET_URLS).forEach(suffix => {
     }));
 });
 
-app.get('/logout', (req, res) => {
-    req.logout();
-    res.redirect('/');
+// Logout route
+app.post('/logout', (req, res) => {
+    console.log(`User ${req.user ? req.user.username : 'unknown'} logging out.`);
+    req.logout((err) => {
+        if (err) {
+            console.error('Error during logout:', err);
+            return res.status(500).json({ message: 'Error logging out' });
+        }
+        res.json({ message: 'Logged out successfully' });
+    });
 });
 
 // Cookie sync endpoint
