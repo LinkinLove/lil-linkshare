@@ -2,6 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
+const path = require('path');
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -30,6 +31,9 @@ passport.deserializeUser((obj, done) => {
     done(null, obj);
 });
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 app.use(session({
     secret: 'your-secret-key',
     resave: false,
@@ -39,8 +43,8 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Handling of different URL suffixes
 app.get('/:suffix', (req, res) => {
+    req.session.suffix = req.params.suffix;
     if (req.isAuthenticated()) {
         if (ALLOWED_USERS.includes(req.user.id)) {
             const targetUrl = TARGET_URLS[req.params.suffix];
@@ -53,16 +57,20 @@ app.get('/:suffix', (req, res) => {
             res.send('You are not authorized to access this page.');
         }
     } else {
-        res.send('<a href="/auth/discord">Login with Discord</a>');
+        res.render('login', { suffix: req.params.suffix });  // Pass the suffix to the view
     }
 });
 
-app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord', (req, res, next) => {
+    const suffix = req.session.suffix;
+    passport.authenticate('discord', { state: suffix })(req, res, next);
+});
 
 app.get('/callback', 
     passport.authenticate('discord', { failureRedirect: '/' }),
     (req, res) => {
-        res.redirect(`/${req.session.suffix || ''}`);
+        const suffix = req.query.state || req.session.suffix || '';
+        res.redirect(`/${suffix}`);
     }
 );
 
