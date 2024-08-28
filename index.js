@@ -2,7 +2,7 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const expressHttpProxy = require('express-http-proxy');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 const fs = require('fs');
 require('dotenv').config();
 
@@ -109,10 +109,11 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 
 // Proxy middleware
 Object.keys(TARGET_URLS).forEach(suffix => {
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, expressHttpProxy(TARGET_URLS[suffix], {
-        proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
-            proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
-            return proxyReqOpts;
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
+        target: TARGET_URLS[suffix],
+        changeOrigin: true,
+        pathRewrite: {
+            [`^/proxy/${suffix}`]: ''
         }
     }));
 });
@@ -141,10 +142,11 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
     fs.writeFileSync('.env', updatedEnvContent);
 
     // Setup new proxy middleware
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, expressHttpProxy(targetUrl, {
-        proxyReqOptDecorator: function(proxyReqOpts, srcReq) {
-            proxyReqOpts.headers['X-Frame-Options'] = 'SAMEORIGIN';
-            return proxyReqOpts;
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
+        target: targetUrl,
+        changeOrigin: true,
+        pathRewrite: {
+            [`^/proxy/${suffix}`]: ''
         }
     }));
 
