@@ -30,6 +30,7 @@
             width: 100%;
             max-width: 1200px;
             margin-bottom: 2rem;
+            transition: all 0.3s ease;
         }
 
         h1 {
@@ -80,6 +81,28 @@
             animation: fadeIn 0.6s ease-out;
         }
 
+        .floating-select {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            width: auto;
+            padding: 0.5rem;
+            background-color: #fff;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        #suffix-select.floating {
+            animation: slideIn 0.6s ease-out;
+        }
+
         @media (max-width: 768px) {
             body {
                 padding: 1rem;
@@ -96,25 +119,41 @@
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="container" id="main-container">
         <h1>Welcome, <%= username %></h1>
         <select id="suffix-select">
             <option value="">Select a suffix</option>
             <% suffixes.forEach(function(suffix) { %>
-                <option value="<%= suffix %>"><%= suffix %></option>
+                <option value="<%= suffix %>" <%= selectedSuffix === suffix ? 'selected' : '' %>><%= suffix %></option>
             <% }); %>
         </select>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 
     <script>
-        document.getElementById('suffix-select').addEventListener('change', function() {
-            var suffix = this.value;
+        const suffixSelect = document.getElementById('suffix-select');
+        const contentFrame = document.getElementById('content-frame');
+        const mainContainer = document.getElementById('main-container');
+        
+        function updateFrame(suffix) {
             if (suffix) {
-                document.getElementById('content-frame').src = '/proxy/' + suffix;
+                contentFrame.src = '/proxy/' + suffix;
                 history.pushState(null, '', '/' + suffix);
+                mainContainer.style.display = 'none';
+                suffixSelect.classList.add('floating');
+                suffixSelect.classList.add('floating-select');
             }
+        }
+
+        suffixSelect.addEventListener('change', function() {
+            updateFrame(this.value);
         });
+
+        // Initialize with selected suffix
+        const initialSuffix = '<%= selectedSuffix %>';
+        if (initialSuffix) {
+            updateFrame(initialSuffix);
+        }
 
         function syncCookies() {
             fetch('/sync-cookies', { credentials: 'include' })
