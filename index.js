@@ -64,9 +64,7 @@ app.get('/', (req, res) => {
     }
 });
 
-app.get('/auth/discord', (req, res, next) => {
-    passport.authenticate('discord')(req, res, next);
-});
+app.get('/auth/discord', passport.authenticate('discord'));
 
 app.get('/callback', 
     passport.authenticate('discord', { failureRedirect: '/' }),
@@ -83,7 +81,7 @@ Object.keys(TARGET_URLS).forEach(suffix => {
             createProxyMiddleware({
                 target,
                 changeOrigin: true,
-                pathRewrite: (path, req) => path.replace(`/proxy/${suffix}`, '')
+                pathRewrite: { [`^/proxy/${suffix}`]: '' }
             })(req, res, next);
         } else {
             res.status(403).send('Forbidden');
@@ -92,9 +90,8 @@ Object.keys(TARGET_URLS).forEach(suffix => {
 });
 
 app.get('/logout', (req, res) => {
-    req.logout(() => {
-        res.redirect('/');
-    });
+    req.logout();
+    res.redirect('/');
 });
 
 app.listen(port, () => {
