@@ -78,7 +78,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/', (req, res) => {
     if (req.isAuthenticated()) {
         if (ALLOWED_USERNAMES.includes(req.user.username)) {
-            res.render('home', { suffixes: Object.keys(TARGET_URLS), username: req.user.username });
+            res.render('home', {
+                suffixes: Object.keys(TARGET_URLS),
+                username: req.user.username,
+                selectedSuffix: null  // 或者你想要的默认值
+            });
         } else {
             res.send('You are not authorized to access this page.');
         }
@@ -155,7 +159,11 @@ app.get('/logout', (req, res) => {
 app.get('/:suffix', ensureAuthenticated, (req, res) => {
     const suffix = req.params.suffix;
     if (TARGET_URLS.hasOwnProperty(suffix)) {
-        res.render('home', { suffixes: Object.keys(TARGET_URLS), username: req.user.username, selectedSuffix: suffix });
+        res.render('home', {
+            suffixes: Object.keys(TARGET_URLS),
+            username: req.user.username,
+            selectedSuffix: suffix
+        });
     } else {
         res.status(404).send('Not found');
     }
