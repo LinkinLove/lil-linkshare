@@ -41,6 +41,7 @@
             justify-content: center;
             gap: 1rem;
             max-width: 800px;
+            margin-bottom: 2rem;
         }
 
         .suffix-button {
@@ -74,28 +75,64 @@
             z-index: 10;
         }
 
-        #home-button {
+        .floating-buttons {
             position: fixed;
             bottom: 2rem;
             right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            z-index: 1000;
+        }
+
+        .floating-button {
             width: 60px;
             height: 60px;
             border-radius: 50%;
-            background-color: #4a90e2;
             color: white;
-            display: none;
+            display: flex;
             justify-content: center;
             align-items: center;
             font-size: 24px;
             cursor: pointer;
             box-shadow: 0 4px 10px rgba(0,0,0,0.2);
             transition: all 0.3s ease;
-            z-index: 1000;
+        }
+
+        #home-button {
+            background-color: #4a90e2;
+        }
+
+        #logout-button {
+            background-color: #e74c3c;
+        }
+
+        .floating-button:hover {
+            transform: scale(1.1);
         }
 
         #home-button:hover {
             background-color: #357ae8;
-            transform: scale(1.1);
+        }
+
+        #logout-button:hover {
+            background-color: #c0392b;
+        }
+
+        #logout-main {
+            margin-top: 2rem;
+            padding: 0.8rem 1.5rem;
+            font-size: 1rem;
+            color: #fff;
+            background-color: #e74c3c;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        #logout-main:hover {
+            background-color: #c0392b;
         }
 
         @media (max-width: 768px) {
@@ -103,12 +140,12 @@
                 font-size: 2rem;
             }
 
-            .suffix-button {
+            .suffix-button, #logout-main {
                 padding: 0.6rem 1.2rem;
                 font-size: 0.9rem;
             }
 
-            #home-button {
+            .floating-button {
                 width: 50px;
                 height: 50px;
                 font-size: 20px;
@@ -120,7 +157,7 @@
             to { opacity: 1; }
         }
 
-        .container, #content-frame, #home-button {
+        .container, #content-frame, .floating-buttons {
             animation: fadeIn 0.6s ease-out;
         }
     </style>
@@ -133,15 +170,22 @@
                 <button class="suffix-button" data-suffix="<%= suffix %>"><%= suffix %></button>
             <% }); %>
         </div>
+        <button id="logout-main">Logout</button>
     </div>
     <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
-    <div id="home-button">🏠</div>
+    <div class="floating-buttons">
+        <div id="home-button" class="floating-button">🏠</div>
+        <div id="logout-button" class="floating-button">🚪</div>
+    </div>
 
     <script>
         const mainContainer = document.getElementById('main-container');
         const contentFrame = document.getElementById('content-frame');
         const homeButton = document.getElementById('home-button');
+        const logoutButton = document.getElementById('logout-button');
+        const logoutMainButton = document.getElementById('logout-main');
         const suffixButtons = document.querySelectorAll('.suffix-button');
+        const floatingButtons = document.querySelector('.floating-buttons');
 
         function updateFrame(suffix) {
             console.log('Updating frame with suffix:', suffix);
@@ -152,7 +196,7 @@
                 history.pushState(null, '', '/' + suffix);
                 mainContainer.style.display = 'none';
                 contentFrame.style.display = 'block';
-                homeButton.style.display = 'flex';
+                floatingButtons.style.display = 'flex';
 
                 contentFrame.onload = function() {
                     console.log('iframe loaded successfully');
@@ -166,9 +210,14 @@
         function returnHome() {
             mainContainer.style.display = 'flex';
             contentFrame.style.display = 'none';
-            homeButton.style.display = 'none';
+            floatingButtons.style.display = 'none';
             history.pushState(null, '', '/');
             contentFrame.src = '';
+        }
+
+        function logout() {
+            // Perform logout action (e.g., clear session, redirect to login page)
+            window.location.href = '/logout';
         }
 
         suffixButtons.forEach(button => {
@@ -179,6 +228,8 @@
         });
 
         homeButton.addEventListener('click', returnHome);
+        logoutButton.addEventListener('click', logout);
+        logoutMainButton.addEventListener('click', logout);
 
         const initialSuffix = '<%= selectedSuffix || "" %>';
         if (initialSuffix) {
