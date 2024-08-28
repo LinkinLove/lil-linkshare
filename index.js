@@ -96,6 +96,9 @@ Object.keys(TARGET_URLS).forEach(suffix => {
         onProxyReq: (proxyReq, req, res) => {
             console.log(`Proxying request ${req.originalUrl} to ${target}`);
         },
+        onProxyRes: (proxyRes, req, res) => {
+            console.log(`Proxy response received for ${req.originalUrl}`);
+        },
         onError: (err, req, res) => {
             console.error(`Error during proxying request ${req.originalUrl}:`, err);
             res.status(500).send('Proxy error');
