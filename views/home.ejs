@@ -138,6 +138,12 @@
         const suffixSelect = document.getElementById('suffix-select');
         const suffixButtons = document.querySelectorAll('.suffix-button');
 
+       // Initialize with selected suffix
+       const initialSuffix = '<%= selectedSuffix || "" %>';
+       if (initialSuffix) {
+           updateFrame(initialSuffix);
+       }
+
         function updateFrame(suffix) {
             if (suffix) {
                 contentFrame.src = '/proxy/' + suffix;
