@@ -3,7 +3,8 @@ const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
 const path = require('path');
-require('dotenv').config(); // 加载 .env 文件的配置
+const { createProxyMiddleware } = require('http-proxy-middleware');
+require('dotenv').config();
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -74,17 +75,20 @@ app.get('/callback',
     }
 );
 
-app.get('/redirect/:suffix', (req, res) => {
-    if (req.isAuthenticated()) {
-        const targetUrl = TARGET_URLS[req.params.suffix];
-        if (targetUrl) {
-            res.redirect(targetUrl);
+// Apply proxy middleware for each target URL
+Object.keys(TARGET_URLS).forEach(suffix => {
+    const target = TARGET_URLS[suffix];
+    app.use(`/proxy/${suffix}`, (req, res, next) => {
+        if (req.isAuthenticated() && ALLOWED_USERNAMES.includes(req.user.username)) {
+            createProxyMiddleware({
+                target,
+                changeOrigin: true,
+                pathRewrite: (path, req) => path.replace(`/proxy/${suffix}`, '')
+            })(req, res, next);
         } else {
-            res.send('Invalid URL suffix.');
+            res.status(403).send('Forbidden');
         }
-    } else {
-        res.render('login', { suffix: req.params.suffix });
-    }
+    });
 });
 
 app.get('/logout', (req, res) => {
