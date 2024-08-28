@@ -1,52 +1,51 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Available Services</title>
+    <title>Proxy Home</title>
     <style>
-        body {
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        #content-frame {
+            width: 100%;
             height: 100vh;
-            background-color: #7289da;
-            color: #fff;
-            font-family: Arial, sans-serif;
-        }
-        .container {
-            text-align: center;
-        }
-        .suffix-btn {
-            display: block;
-            margin: 10px 0;
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #7289da;
-            color: #fff;
-            text-decoration: none;
-            border-radius: 5px;
-            transition: background-color 0.3s ease;
-        }
-        .suffix-btn:hover {
-            background-color: #99aab5;
-        }
-        .welcome-message {
-            margin-bottom: 20px;
-            font-size: 20px;
+            border: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Welcome, <%= username %>!</h1>
-        <p class="welcome-message">You have successfully logged in.</p>
+    <h1>Welcome, <%= username %></h1>
+    <select id="suffix-select">
+        <option value="">Select a suffix</option>
+        <% suffixes.forEach(function(suffix) { %>
+            <option value="<%= suffix %>"><%= suffix %></option>
+        <% }); %>
+    </select>
+    <iframe id="content-frame" sandbox="allow-scripts allow-same-origin allow-forms"></iframe>
 
-        <h2>Available Services</h2>
-        <% suffixes.forEach(suffix => { %>
-            <a class="suffix-btn" href="/proxy/<%= suffix %>"><%= suffix %></a>
-        <% }) %>
-        <a class="suffix-btn" href="/logout">Logout</a>
-    </div>
+    <script>
+        document.getElementById('suffix-select').addEventListener('change', function() {
+            var suffix = this.value;
+            if (suffix) {
+                document.getElementById('content-frame').src = '/proxy/' + suffix;
+                history.pushState(null, '', '/' + suffix);
+            }
+        });
+
+        // Cookie sync function
+        function syncCookies() {
+            fetch('/sync-cookies', { credentials: 'include' })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Cookie sync failed');
+                    }
+                    console.log('Cookies synced successfully');
+                })
+                .catch(error => console.error('Error syncing cookies:', error));
+        }
+
+        // Sync cookies every minute
+        setInterval(syncCookies, 60000);
+
+        // Initial cookie sync
+        syncCookies();
+    </script>
 </body>
 </html>
