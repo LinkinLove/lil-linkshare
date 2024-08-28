@@ -238,17 +238,17 @@
         function returnHome() {
             mainContainer.style.display = 'flex';
             contentFrame.style.display = 'none';
-            floatingButtons.style.display = 'flex';
+            floatingButtons.style.display = 'none';
             history.pushState(null, '', '/');
             contentFrame.src = '';
         }
 
         function logout() {
-            fetch('/logout', { method: 'POST', credentials: 'same-origin' })
+            fetch('/logout', { method: 'POST', headers: { 'Content-Type': 'application/json' } })
                 .then(response => response.json())
                 .then(data => {
                     console.log(data.message);
-                    window.location.href = '/';
+                    window.location.href = '/login';
                 })
                 .catch(error => {
                     console.error('Logout failed:', error);
