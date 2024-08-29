@@ -110,7 +110,7 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
 // Proxy middleware
 Object.keys(TARGET_URLS).forEach(suffix => {
     app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
-        target: TARGET_URLS[suffix],
+        target: deobfuscate(TARGET_URLS[suffix]), // 访问时解码
         changeOrigin: true,
         pathRewrite: {
             [`^/proxy/${suffix}`]: ''
@@ -130,10 +130,11 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
         return res.status(400).json({ message: 'Suffix already exists' });
     }
 
-    // Add new link
-    TARGET_URLS[suffix] = targetUrl;
+    // 混淆 target URL
+    const obfuscatedUrl = obfuscate(targetUrl);
+    TARGET_URLS[suffix] = obfuscatedUrl;
 
-    // Update .env file
+    // 保存到 .env 文件
     const envContent = fs.readFileSync('.env', 'utf8');
     const updatedEnvContent = envContent.replace(
         /TARGET_URLS=.*/,
@@ -141,17 +142,18 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
     );
     fs.writeFileSync('.env', updatedEnvContent);
 
-    // Setup new proxy middleware
-    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
-        target: targetUrl,
-        changeOrigin: true,
-        pathRewrite: {
-            [`^/proxy/${suffix}`]: ''
-        }
-    }));
-
     res.json({ message: 'Link added successfully', suffixes: Object.keys(TARGET_URLS) });
 });
+
+// 混淆 target URL (Base64 编码)
+function obfuscate(url) {
+    return Buffer.from(url).toString('base64');
+}
+
+// 解码混淆的 URL
+function deobfuscate(obfuscatedUrl) {
+    return Buffer.from(obfuscatedUrl, 'base64').toString('utf8');
+}
 
 // Logout route
 app.post('/logout', (req, res, next) => {
