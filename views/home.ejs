@@ -231,7 +231,8 @@
         function updateFrame(suffix) {
             console.log('Updating frame with suffix:', suffix);
             if (suffix) {
-                const proxyUrl = '/proxy/' + btoa(suffix);
+                // 通过后端提供的混淆 URL 加载 iframe
+                const proxyUrl = '/proxy/' + suffix;
                 console.log('Setting iframe src to:', proxyUrl);
                 contentFrame.src = proxyUrl;
                 iframeOverlay.style.display = 'block';
@@ -249,7 +250,6 @@
                 };
             }
         }
-
         function returnHome() {
             mainContainer.style.display = 'flex';
             contentFrame.style.display = 'none';
