@@ -181,6 +181,17 @@
         .container, #content-frame, .floating-buttons {
             animation: fadeIn 0.6s ease-out;
         }
+
+        .iframe-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.7);
+            pointer-events: none;
+            z-index: 999;
+        }
     </style>
 </head>
 <body>
@@ -199,6 +210,7 @@
         </div>
     </div>
     <iframe id="content-frame" sandbox="allow-same-origin"></iframe>
+    <div id="iframe-overlay" class="iframe-overlay" style="display:none;"></div>
     <div class="floating-buttons">
         <div id="home-button" class="floating-button">🏠</div>
         <div id="logout-button" class="floating-button">🚪</div>
@@ -207,6 +219,7 @@
     <script>
         const mainContainer = document.getElementById('main-container');
         const contentFrame = document.getElementById('content-frame');
+        const iframeOverlay = document.getElementById('iframe-overlay');
         const homeButton = document.getElementById('home-button');
         const logoutButton = document.getElementById('logout-button');
         const suffixButtons = document.querySelectorAll('.suffix-button');
@@ -218,18 +231,21 @@
         function updateFrame(suffix) {
             console.log('Updating frame with suffix:', suffix);
             if (suffix) {
-                const proxyUrl = '/proxy/' + suffix;
+                const proxyUrl = '/proxy/' + btoa(suffix);
                 console.log('Setting iframe src to:', proxyUrl);
                 contentFrame.src = proxyUrl;
+                iframeOverlay.style.display = 'block';
                 history.pushState(null, '', '/' + suffix);
                 mainContainer.style.display = 'none';
                 contentFrame.style.display = 'block';
                 floatingButtons.style.display = 'flex';
                 contentFrame.onload = function() {
                     console.log('iframe loaded successfully');
+                    iframeOverlay.style.display = 'none';
                 };
                 contentFrame.onerror = function() {
                     console.error('Error loading iframe');
+                    iframeOverlay.style.display = 'none';
                 };
             }
         }
@@ -249,81 +265,49 @@
                     console.log(data.message);
                     window.location.href = '/';
                 })
-                .catch(error => {
-                    console.error('Logout failed:', error);
-                    alert('Logout failed. Please try again.');
-                });
+                .catch(error => console.error('Error logging out:', error));
         }
 
         suffixButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                console.log('Button clicked:', this.dataset.suffix);
-                updateFrame(this.dataset.suffix);
+            button.addEventListener('click', () => {
+                const suffix = button.getAttribute('data-suffix');
+                updateFrame(suffix);
             });
         });
 
         homeButton.addEventListener('click', returnHome);
         logoutButton.addEventListener('click', logout);
 
-        addLinkButton.addEventListener('click', function() {
+        addLinkButton.addEventListener('click', () => {
             const suffix = newSuffixInput.value.trim();
             const targetUrl = newTargetUrlInput.value.trim();
-
-            if (!suffix || !targetUrl) {
-                alert('Please enter both suffix and target URL');
-                return;
+            if (suffix && targetUrl) {
+                console.log('Adding new link:', suffix, targetUrl);
+                fetch('/add-link', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ suffix, targetUrl })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        console.log('New link added successfully');
+                        location.reload();
+                    } else {
+                        console.error('Failed to add new link:', data.error);
+                    }
+                })
+                .catch(error => console.error('Error adding link:', error));
+            } else {
+                alert('Please enter both suffix and target URL.');
             }
-
-            fetch('/add-link', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ suffix, targetUrl }),
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.message === 'Link added successfully') {
-                    alert('New link added successfully');
-                    // 刷新页面以显示新添加的链接
-                    window.location.reload();
-                } else {
-                    alert(data.message);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Failed to add new link');
-            });
         });
 
-        const initialSuffix = '<%= selectedSuffix || "" %>';
-        if (initialSuffix) {
-            console.log('Initializing with suffix:', initialSuffix);
-            updateFrame(initialSuffix);
-        }
-
-        function syncCookies() {
-            fetch('/sync-cookies', { credentials: 'include' })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Cookie sync failed: ${response.status}`);
-                    }
-                    console.log('Cookies synced successfully');
-                })
-                .catch(error => console.error('Error syncing cookies:', error));
-        }
-
-        setInterval(syncCookies, 60000);
-        syncCookies();
-
-        // Handle browser back/forward buttons
-        window.addEventListener('popstate', function(event) {
-            if (document.location.pathname === '/') {
-                returnHome();
-            } else {
-                const suffix = document.location.pathname.slice(1);
-                updateFrame(suffix);
+        // Add listener for initial load to update iframe if a suffix is in the URL
+        window.addEventListener('load', () => {
+            const pathSuffix = window.location.pathname.slice(1);
+            if (pathSuffix) {
+                updateFrame(atob(pathSuffix));
             }
         });
     </script>
