@@ -93,7 +93,7 @@ app.get('/callback',
     }
 );
 
-// Suffix route
+// Suffix route to render the main page with the selected suffix
 app.get('/:suffix', ensureAuthenticated, (req, res) => {
     const suffix = req.params.suffix;
     if (TARGET_URLS.hasOwnProperty(suffix)) {
@@ -107,13 +107,19 @@ app.get('/:suffix', ensureAuthenticated, (req, res) => {
     }
 });
 
-// Proxy middleware
+// Proxy middleware to hide target URL
 Object.keys(TARGET_URLS).forEach(suffix => {
     app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
-        target: deobfuscate(TARGET_URLS[suffix]), // 访问时解码
+        target: TARGET_URLS[suffix],
         changeOrigin: true,
         pathRewrite: {
             [`^/proxy/${suffix}`]: ''
+        },
+        onProxyReq: (proxyReq, req, res) => {
+            // Optionally modify request here, e.g., add custom headers
+        },
+        onProxyRes: (proxyRes, req, res) => {
+            // Optionally modify response here
         }
     }));
 });
@@ -130,11 +136,10 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
         return res.status(400).json({ message: 'Suffix already exists' });
     }
 
-    // 混淆 target URL
-    const obfuscatedUrl = obfuscate(targetUrl);
-    TARGET_URLS[suffix] = obfuscatedUrl;
+    // Add new link
+    TARGET_URLS[suffix] = targetUrl;
 
-    // 保存到 .env 文件
+    // Update .env file
     const envContent = fs.readFileSync('.env', 'utf8');
     const updatedEnvContent = envContent.replace(
         /TARGET_URLS=.*/,
@@ -142,18 +147,17 @@ app.post('/add-link', ensureAuthenticated, (req, res) => {
     );
     fs.writeFileSync('.env', updatedEnvContent);
 
+    // Setup new proxy middleware
+    app.use(`/proxy/${suffix}`, ensureAuthenticated, createProxyMiddleware({
+        target: targetUrl,
+        changeOrigin: true,
+        pathRewrite: {
+            [`^/proxy/${suffix}`]: ''
+        }
+    }));
+
     res.json({ message: 'Link added successfully', suffixes: Object.keys(TARGET_URLS) });
 });
-
-// 混淆 target URL (Base64 编码)
-function obfuscate(url) {
-    return Buffer.from(url).toString('base64');
-}
-
-// 解码混淆的 URL
-function deobfuscate(obfuscatedUrl) {
-    return Buffer.from(obfuscatedUrl, 'base64').toString('utf8');
-}
 
 // Logout route
 app.post('/logout', (req, res, next) => {
