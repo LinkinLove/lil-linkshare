@@ -225,7 +225,6 @@
                 mainContainer.style.display = 'none';
                 contentFrame.style.display = 'block';
                 floatingButtons.style.display = 'flex';
-
                 contentFrame.onload = function() {
                     console.log('iframe loaded successfully');
                 };
@@ -238,7 +237,7 @@
         function returnHome() {
             mainContainer.style.display = 'flex';
             contentFrame.style.display = 'none';
-            floatingButtons.style.display = 'none';
+            floatingButtons.style.display = 'flex';
             history.pushState(null, '', '/');
             contentFrame.src = '';
         }
